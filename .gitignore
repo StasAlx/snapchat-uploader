@@ -1,0 +1,7 @@
+.env
+client_secrets.json
+gdrive_credentials.json
+state/
+__pycache__/
+*.pyc
+.venv/
