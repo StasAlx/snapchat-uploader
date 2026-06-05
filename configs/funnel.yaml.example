@@ -29,7 +29,10 @@ target_cost_usd: 60
 optimization_goal: "PIXEL_PURCHASE"   # или PIXEL_ADD_TO_CART, PIXEL_SIGN_UP и др.
 
 # Таргетинг — гео (ISO коды в нижнем регистре)
+# Вариант 1: Tier1 EN-speaking
 countries: ["us", "gb", "ca", "au", "nz", "ie"]
+# Вариант 2: Tier1+Tier2 — EU + APAC + Middle East (ME, IS, CY, MT — уточнить доступность в аккаунте)
+# countries: ["us", "gb", "ca", "au", "nz", "ae", "at", "be", "bg", "ch", "cy", "cz", "de", "dk", "ee", "es", "fi", "fr", "gr", "hk", "hr", "hu", "ie", "il", "is", "it", "jp", "kr", "lt", "lu", "lv", "me", "mt", "nl", "no", "pl", "pt", "ro", "rs", "sa", "se", "sg", "si", "sk"]
 
 smart_targeting: true
 languages: ["en"]   # ISO коды: en, de, fr, es, ar и др. Пустой список = все языки
