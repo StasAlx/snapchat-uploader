@@ -18,7 +18,7 @@ class FunnelConfig:
     profile_id: str
 
     # Google Drive
-    gdrive_folder_id: str
+    gdrive_root_folder_id: str
 
     # Шаблон имени кампании (дата _DDMMYY_HHMMSS добавляется автоматически)
     campaign_name_template: str
@@ -85,7 +85,7 @@ def load_config(name_or_path: str) -> FunnelConfig:
         ad_account_id=str(data["ad_account_id"]),
         pixel_id=str(data["pixel_id"]),
         profile_id=str(data["profile_id"]),
-        gdrive_folder_id=str(data["gdrive_folder_id"]),
+        gdrive_root_folder_id=str(data["gdrive_root_folder_id"]),
         campaign_name_template=data["campaign_name_template"],
         ad_url=data["ad_url"],
         headline=data["headline"],

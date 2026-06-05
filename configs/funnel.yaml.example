@@ -1,0 +1,39 @@
+# Шаблон воронки Snapchat — скопировать, переименовать и заполнить реальными значениями
+# cp configs/funnel.yaml.example configs/my_funnel.yaml
+name: funnel_name   # уникальное имя воронки (snake_case), совпадает с именем файла
+
+# Snapchat аккаунт
+ad_account_id: "YOUR_AD_ACCOUNT_UUID"
+pixel_id: "YOUR_PIXEL_UUID"
+profile_id: "YOUR_PUBLIC_PROFILE_UUID"   # из URL профиля: /profiles/{id}/
+
+# Google Drive — корневая папка с креативами (поиск по названию файла)
+gdrive_root_folder_id: "YOUR_GDRIVE_ROOT_FOLDER_ID"
+
+# Шаблон имени кампании (дата _DDMMYY_HHMMSS добавляется автоматически)
+campaign_name_template: "WEB_snap_CL_product_WW_CBO_purch_funnel_lprice"
+
+# Тексты объявления
+ad_url: "https://your-landing.com"
+headline: "Start Now"              # текст под брендом, до 34 символов
+brand_name: "Your Brand Name"      # юридическое имя бренда
+call_to_action: "MORE"             # INSTALL, LEARN_MORE, MORE, OPEN_APP, ORDER_NOW, PLAY, SHOP_NOW, и др.
+
+# Бюджет кампании в USD/день (CBO — Smart Budget)
+campaign_budget_usd: 300
+
+# Bid cap за конверсию (USD) — аналог Target Cost
+target_cost_usd: 60
+
+# Событие пикселя для оптимизации
+optimization_goal: "PIXEL_PURCHASE"   # или PIXEL_ADD_TO_CART, PIXEL_SIGN_UP и др.
+
+# Таргетинг — гео (ISO коды в нижнем регистре)
+countries: ["us", "gb", "ca", "au", "nz", "ie"]
+
+smart_targeting: true
+languages: ["en"]   # ISO коды: en, de, fr, es, ar и др. Пустой список = все языки
+min_age: 21
+
+# Файлов за один прогон (делятся на 2 адсета по N/2)
+batch_size: 10

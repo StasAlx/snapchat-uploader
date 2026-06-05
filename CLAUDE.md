@@ -40,7 +40,7 @@ OAuth2 Authorization Code flow:
 1. Читает базовые имена из `creatives/{funnel}.txt`
 2. Из `state/{funnel}/uploaded.json` фильтрует уже загруженные
 3. Берёт до `batch_size` (10) файлов
-4. Умный поиск на Drive: `CRTV-154-1_MIDEF_ED` → папка `CRTV-154` → файл `CRTV-154-1_9x16_MIDEF_ED.mp4`
+4. Ищет файлы на Drive по токенам названия: `CRTV-154-1_MIDEF_ED` → запрос `title contains 'CRTV-154-1' and title contains 'MIDEF' and title contains 'ED'` → фильтр 9x16 или без маркера
 5. Создаёт **CBO кампанию** с бюджетом на уровне кампании (Smart Budget)
 6. Создаёт **2 Ad Squad** — первые ⌈N/2⌉ файлов в AS1, остальные в AS2
 7. Для каждого файла: скачивает → `upload_media` → поллит до READY → `create_creative` → `create_ad`
@@ -68,7 +68,7 @@ snapchat-uploader/
     ├── auth.py             ← OAuth2: получение/обновление access_token
     ├── config.py           ← FunnelConfig + загрузчик yaml
     ├── api.py              ← Snapchat API v1: media, creative, campaign, ad_squad, ad
-    ├── gdrive.py           ← Google Drive: поиск по папке-префиксу, скачивание
+    ├── gdrive.py           ← Google Drive: поиск по токенам названия файла, скачивание
     └── uploader.py         ← главный цикл
 ```
 
@@ -81,7 +81,7 @@ snapchat-uploader/
 | `ad_account_id` | ID рекламного аккаунта Snapchat |
 | `pixel_id` | UUID пикселя (из Snap Ads Manager → Pixels) |
 | `profile_id` | UUID публичного профиля (из URL в профиле: `/profiles/{id}/`) |
-| `gdrive_folder_id` | ID корневой папки Drive (содержит AUTOVideo / AUTOStatic) |
+| `gdrive_root_folder_id` | ID корневой папки Drive с креативами |
 | `campaign_name_template` | Шаблон имени кампании (дата `_DDMMYY_HHMMSS` добавляется автоматически) |
 | `ad_url` | URL лендинга (поддерживаются макросы `{{campaign.name}}`, `{{adSet.name}}` и др.) |
 | `headline` | Текст под брендом (до 34 символов) |
@@ -140,7 +140,7 @@ Profile ID: `f8eec728-3cc7-42be-a514-eeb81fe7c5a6`
 
 ```bash
 cp configs/mimika_v21.yaml configs/new_funnel.yaml
-# Заменить: name, pixel_id, profile_id, gdrive_folder_id,
+# Заменить: name, pixel_id, profile_id, gdrive_root_folder_id,
 #           campaign_name_template, ad_url, headline, brand_name
 
 touch creatives/new_funnel.txt

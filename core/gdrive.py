@@ -1,16 +1,14 @@
 """
-Google Drive: поиск файлов по имени и скачивание.
-Структура папок: gdrive_folder_id → AUTOVideo/AUTOStatic → CRTV-xxx → файлы
+Google Drive: поиск файлов по названию и скачивание.
 
 Поиск по базовому имени (без расширения и маркера формата):
-    'CRTV-154-1_MIDEF_ED'  →  найдёт 'CRTV-154-1_9x16_MIDEF_ED.mp4' в папке CRTV-154
-    'CRTV-617-11'          →  найдёт 'CRTV-617-11.mp4' в папке CRTV-617
+    'CRTV-154-1_MIDEF_ED'  →  найдёт 'CRTV-154-1_9x16_MIDEF_ED.mp4'
+    'CRTV-617-11'          →  найдёт 'CRTV-617-11.mp4' (без маркера формата)
+    'CRTS-489-5_MIDEF_ED'  →  найдёт 'CRTS-489-5_9x16_MIDEF_ED.png'
 
-Стратегия поиска (быстрая, ~12 API-запросов вместо 1724):
-    1. Получаем ID папок AUTOVideo и AUTOStatic (1 запрос)
-    2. По каждому basename определяем нужную папку: CRTV-154-1 → CRTV-154
-    3. Ищем эту папку (с учётом суффикса UPLOADED) → 1 запрос на папку
-    4. Листингуем только нужные папки → 1 запрос на папку
+Стратегия поиска (~1 API-запрос на файл):
+    Drive API: title contains 'tok1' and title contains 'tok2' and ...
+    Не требует знания структуры папок — работает с любой вложенностью.
 
 Фильтр форматов: загружаются только 9x16 или файлы без маркера формата.
 """
@@ -27,10 +25,9 @@ from pydrive2.drive import GoogleDrive
 MIME_FOLDER = "application/vnd.google-apps.folder"
 log = logging.getLogger(__name__)
 
-# Маркер формата в имени файла: 9x16, 4x5, 1x1 и т.д.
 _FORMAT_RE = re.compile(r"\d+x\d+", re.IGNORECASE)
+_FORMAT_TOKEN_RE = re.compile(r"^\d+x\d+$", re.IGNORECASE)
 
-# Корневая папка проекта (tiktok-uploader/)
 _PROJECT_ROOT = Path(__file__).parent.parent
 
 
@@ -42,9 +39,9 @@ def file_basename(title: str) -> str:
     'CRTV-154-1_9x16_MIDEF_ED.mp4' → 'CRTV-154-1_MIDEF_ED'
     'CRTV-617-11.mp4'               → 'CRTV-617-11'
     """
-    stem = Path(title).stem                     # убираем расширение
-    cleaned = _FORMAT_RE.sub("", stem)          # убираем маркер формата
-    cleaned = re.sub(r"_+", "_", cleaned)       # схлопываем двойные подчёркивания
+    stem = Path(title).stem
+    cleaned = _FORMAT_RE.sub("", stem)
+    cleaned = re.sub(r"_+", "_", cleaned)
     return cleaned.strip("_")
 
 
@@ -70,18 +67,40 @@ def is_uploadable(title: str) -> bool:
     return fmt is None or fmt == "9x16"
 
 
-def _folder_prefix(basename: str) -> str:
+def _tokens(s: str) -> List[str]:
+    return [t for t in s.split("_") if t]
+
+
+def _allowed_variant(full_name: str, base_name: str) -> bool:
     """
-    Извлекает имя папки из базового имени файла.
-    'CRTV-154-1_MIDEF_ED' → 'CRTV-154'
-    'CRTS-489-5_MIDEF_ED' → 'CRTS-489'
-    'CRTV-617-11'         → 'CRTV-617'
+    Проверяет, что файл соответствует базовому имени с учётом вставки маркера формата.
+
+    Разрешены:
+      - точное совпадение stem == base_name
+      - stem == base_name с ОДНИМ форматным токеном (9x16, 4x5 и т.д.),
+        вставленным строго между другими токенами (не в начале и не в конце)
+
+    Примеры:
+      CRTV-154-1_MIDEF_ED           → OK (точное совпадение)
+      CRTV-154-1_9x16_MIDEF_ED.mp4 → OK (9x16 вставлен между токенами)
+      CRTV-154-1_MIDEF_ED_9x16.mp4 → НЕТ (в конце)
+      9x16_CRTV-154-1_MIDEF_ED.mp4 → НЕТ (в начале)
     """
-    # Берём первые два сегмента через дефис: CRTV-154
-    parts = basename.split("-")
-    if len(parts) >= 2:
-        return f"{parts[0]}-{parts[1]}"
-    return basename
+    stem = Path(full_name).stem
+    if stem == base_name:
+        return True
+
+    base_toks = _tokens(base_name)
+    var_toks = _tokens(stem)
+
+    if len(var_toks) == len(base_toks) + 1:
+        for i, tok in enumerate(var_toks):
+            if _FORMAT_TOKEN_RE.match(tok):
+                if i == 0 or i == len(var_toks) - 1:
+                    continue
+                if var_toks[:i] + var_toks[i + 1:] == base_toks:
+                    return True
+    return False
 
 
 # ── Google Drive init ─────────────────────────────────────────────────────────
@@ -90,9 +109,6 @@ def init_gdrive(client_secrets_path: str = "client_secrets.json") -> GoogleDrive
     """
     Инициализирует Google Drive с OAuth2. При первом запуске откроется браузер.
     Токен сохраняется в gdrive_credentials.json и используется повторно.
-
-    Важно: settings передаются в конструктор GoogleAuth, а не через gauth.settings
-    после создания — иначе _storages не инициализируются корректно.
     """
     secrets_abs = str(Path(client_secrets_path).resolve())
     creds_abs = str(_PROJECT_ROOT / "gdrive_credentials.json")
@@ -110,7 +126,7 @@ def init_gdrive(client_secrets_path: str = "client_secrets.json") -> GoogleDrive
     return GoogleDrive(gauth)
 
 
-# ── Умный поиск по папке (основной) ──────────────────────────────────────────
+# ── Поиск по названию файла ───────────────────────────────────────────────────
 
 def find_files_by_basenames(
     drive: GoogleDrive,
@@ -118,78 +134,53 @@ def find_files_by_basenames(
     basenames: Set[str],
 ) -> Dict[str, object]:
     """
-    Ищет файлы по базовому имени (без расширения и маркера формата).
-    Загружаемые форматы: только 9x16 или без маркера.
+    Ищет файлы по базовому имени через Drive API title search.
+    1 API-запрос на файл, не зависит от структуры папок.
 
-    Алгоритм (быстрый):
-    - basename → prefix (CRTV-154-1 → CRTV-154) → папка на Drive
-    - Листингует только нужные папки (не весь Drive)
+    Алгоритм:
+    - Каждый токен basename добавляется как 'title contains' условие
+    - Из результатов берётся первый файл, прошедший _allowed_variant + is_uploadable
+    - root_folder_id не используется в запросе (поиск по всему Drive)
 
     Возвращает {basename: drive_file_object}.
     """
     result: Dict[str, object] = {}
 
-    # Шаг 1: найти AUTOVideo и AUTOStatic
-    log.info("Получаем структуру корневой папки Drive...")
-    root_items = drive.ListFile(
-        {"q": f"'{root_folder_id}' in parents and trashed=false and mimeType='{MIME_FOLDER}'"}
-    ).GetList()
-    top_folders: Dict[str, str] = {item["title"]: item["id"] for item in root_items}
+    for bn in sorted(basenames):
+        tokens = _tokens(bn)
+        conditions = [
+            "trashed = false",
+            f"mimeType != '{MIME_FOLDER}'",
+            "not mimeType contains 'application/vnd.google-apps'",
+        ]
+        for tok in tokens:
+            escaped = tok.replace("'", "\\'")
+            conditions.append(f"title contains '{escaped}'")
+        q = " and ".join(conditions)
 
-    autovideo_id = top_folders.get("AUTOVideo")
-    autostatic_id = top_folders.get("AUTOStatic")
-    if not autovideo_id or not autostatic_id:
-        log.error("Не найдены папки AUTOVideo / AUTOStatic. Найдены: %s", list(top_folders))
-        return result
-    log.info("AUTOVideo: %s, AUTOStatic: %s", autovideo_id, autostatic_id)
-
-    # Шаг 2: группируем basenames по папке-префиксу
-    prefix_map: Dict[str, List[str]] = {}
-    for bn in basenames:
-        prefix = _folder_prefix(bn)
-        prefix_map.setdefault(prefix, []).append(bn)
-
-    # Шаг 3: для каждого префикса находим папку на Drive и ищем файлы
-    for prefix, bns in prefix_map.items():
-        ctype = prefix.split("-")[0].upper()   # CRTV или CRTS
-        parent_id = autovideo_id if ctype == "CRTV" else autostatic_id
-
-        # Ищем папку: может называться 'CRTV-154' или 'CRTV-154 UPLOADED'
-        folder_query = (
-            f"(title = '{prefix}' or title = '{prefix} UPLOADED') "
-            f"and mimeType='{MIME_FOLDER}' "
-            f"and '{parent_id}' in parents "
-            f"and trashed=false"
-        )
-        log.info("Ищем папку: %s...", prefix)
-        folders = drive.ListFile({"q": folder_query}).GetList()
-
-        if not folders:
-            log.warning("Папка не найдена на Drive: %s", prefix)
+        log.info("Поиск на Drive: %s ...", bn)
+        try:
+            files = drive.ListFile({"q": q}).GetList()
+        except Exception as exc:
+            log.warning("Ошибка поиска '%s': %s", bn, exc)
             continue
 
-        folder_id = folders[0]["id"]
-        folder_title = folders[0]["title"]
-        log.info("  Папка найдена: %s", folder_title)
+        matched = None
+        for f in files:
+            title = f["title"]
+            if _allowed_variant(title, bn) and is_uploadable(title):
+                matched = f
+                break
 
-        # Листингуем файлы в папке
-        files = drive.ListFile(
-            {"q": f"'{folder_id}' in parents and trashed=false and mimeType!='{MIME_FOLDER}'"}
-        ).GetList()
-        log.info("  Файлов в папке: %d", len(files))
-
-        for item in files:
-            if not is_uploadable(item["title"]):
-                log.debug("  Пропускаем (%s): %s", file_format(item["title"]), item["title"])
-                continue
-            bn = file_basename(item["title"])
-            if bn in bns and bn not in result:
-                result[bn] = item
-                log.info("  ✓ %s  →  %s", bn, item["title"])
+        if matched:
+            result[bn] = matched
+            log.info("  ✓ %s  →  %s", bn, matched["title"])
+        else:
+            log.warning("  ✗ Не найдено: %s (всего совпадений по токенам: %d)", bn, len(files))
 
     missing = basenames - set(result.keys())
     if missing:
-        log.warning("Не найдено на Drive: %s", ", ".join(sorted(missing)))
+        log.warning("Итого не найдено на Drive: %s", ", ".join(sorted(missing)))
 
     return result
 

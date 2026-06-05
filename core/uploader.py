@@ -163,7 +163,7 @@ def run_upload(
     # Поиск на Google Drive
     log.info("Поиск файлов на Google Drive...")
     drive = init_gdrive(client_secrets_json)
-    found_files = find_files_by_basenames(drive, cfg.gdrive_folder_id, set(batch))
+    found_files = find_files_by_basenames(drive, cfg.gdrive_root_folder_id, set(batch))
 
     if not found_files:
         log.error("Не найдено ни одного файла на Google Drive.")

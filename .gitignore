@@ -1,7 +1,24 @@
+# Credentials
 .env
 client_secrets.json
 gdrive_credentials.json
+
+# Конфиги воронок (содержат account/pixel/profile ID) — хранить локально
+# Шаблон для новых воронок: configs/funnel.yaml.example
+configs/*.yaml
+
+# State — локальные данные
 state/
+
+# Python
 __pycache__/
 *.pyc
+*.pyo
 .venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
