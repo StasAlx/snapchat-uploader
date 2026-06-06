@@ -53,16 +53,10 @@ def main() -> None:
         log.info("--- DRY RUN: реальная загрузка не производится ---")
         return
 
-    secrets = ROOT / "client_secrets.json"
-    if not secrets.exists():
-        log.error("client_secrets.json не найден в %s", ROOT)
-        sys.exit(1)
-
     from core.uploader import run_upload
     try:
         run_upload(
             funnel_name_or_path=args.funnel,
-            client_secrets_json=str(secrets),
             limit=args.limit,
         )
     except Exception as exc:

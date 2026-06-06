@@ -105,24 +105,16 @@ def _allowed_variant(full_name: str, base_name: str) -> bool:
 
 # ── Google Drive init ─────────────────────────────────────────────────────────
 
-def init_gdrive(client_secrets_path: str = "client_secrets.json") -> GoogleDrive:
-    """
-    Инициализирует Google Drive с OAuth2. При первом запуске откроется браузер.
-    Токен сохраняется в gdrive_credentials.json и используется повторно.
-    """
-    secrets_abs = str(Path(client_secrets_path).resolve())
-    creds_abs = str(_PROJECT_ROOT / "gdrive_credentials.json")
+_SA_FILE = _PROJECT_ROOT / "service_account.json"
 
+
+def init_gdrive() -> GoogleDrive:
+    """Авторизация через Service Account — браузер не нужен."""
     gauth = GoogleAuth(settings={
-        "client_config_backend": "file",
-        "client_config_file": secrets_abs,
-        "save_credentials": True,
-        "save_credentials_backend": "file",
-        "save_credentials_file": creds_abs,
-        "get_refresh_token": True,
-        "oauth_scope": ["https://www.googleapis.com/auth/drive"],
+        "client_config_backend": "service",
+        "service_config": {"client_json_file_path": str(_SA_FILE)},
     })
-    gauth.LocalWebserverAuth()
+    gauth.ServiceAuth()
     return GoogleDrive(gauth)
 
 

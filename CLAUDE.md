@@ -13,7 +13,7 @@ cd snapchat-uploader
 pip install -r requirements.txt
 cp .env.example .env            # вставить SNAP_CLIENT_ID, SNAP_CLIENT_SECRET
 python get_token.py             # получить SNAP_REFRESH_TOKEN → запишется в .env автоматически
-# положить client_secrets.json (Google OAuth) в корень папки
+# положить service_account.json (Google Service Account) в корень папки
 
 python run.py mimika_v21                  # загрузить до 10 креативов
 python run.py mimika_v21 --limit 3        # загрузить 3 (для теста)

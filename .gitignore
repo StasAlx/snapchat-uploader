@@ -2,6 +2,7 @@
 .env
 client_secrets.json
 gdrive_credentials.json
+service_account.json
 
 # Конфиги воронок (содержат account/pixel/profile ID) — хранить локально
 # Шаблон для новых воронок: configs/funnel.yaml.example

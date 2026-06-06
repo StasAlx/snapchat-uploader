@@ -134,7 +134,6 @@ def _process_batch(
 
 def run_upload(
     funnel_name_or_path: str,
-    client_secrets_json: str = "client_secrets.json",
     limit: Optional[int] = None,
 ) -> None:
     cfg = load_config(funnel_name_or_path)
@@ -162,7 +161,7 @@ def run_upload(
 
     # Поиск на Google Drive
     log.info("Поиск файлов на Google Drive...")
-    drive = init_gdrive(client_secrets_json)
+    drive = init_gdrive()
     found_files = find_files_by_basenames(drive, cfg.gdrive_root_folder_id, set(batch))
 
     if not found_files:
