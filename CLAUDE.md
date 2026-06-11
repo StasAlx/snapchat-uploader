@@ -129,10 +129,10 @@ snapchat-uploader/
 
 | Аккаунт | ad_account_id |
 |---------|---------------|
-| CM MENTALGROWTH LTD | `e8efd7df-56a7-494d-9ff0-5e190dd98ef6` |
+| CM MENTALGROWTH LTD | `your_snap_account_id_here` |
 
-Пиксель Face Yoga: `73936160-1977-47e5-80cf-e32974be3fef`
-Profile ID: `f8eec728-3cc7-42be-a514-eeb81fe7c5a6`
+Пиксель Face Yoga: `your_pixel_uuid_here`
+Profile ID: `your_profile_uuid_here`
 
 ---
 
